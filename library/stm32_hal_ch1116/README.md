@@ -1,8 +1,7 @@
-# 波特律动OLED驱动库(HAL+CH1116)
-
-波特律动出品的OLED驱动库
-
 ## 使用方法
+
+### 0. 工程配置
+使用本库需要开启STM32的I2C功能, 将I2C频率尽可能调高.
 
 ### 1. 引入
 #### CubeIDE
@@ -11,7 +10,7 @@
 ### 2. 使用
 1. STM32初始化IIC完成后调用`OLED_Init()`初始化OLED. 注意STM32启动比OLED上电快, 可等待20ms再初始化OLED
 2. 调用`OLED_NewFrame()`开始绘制新的一帧
-3. 调用`OLED_DrawXXX()`系列函数绘制图形到显存 调用OLED_Printxxx()系列函数绘制文本到显存
+3. 调用`OLED_DrawXXX()`系列函数绘制图形到显存 调用`OLED_Printxxx()`系列函数绘制文本到显存
 4. 调用`OLED_ShowFrame()`将显存内容显示到OLED
 
 ```c
