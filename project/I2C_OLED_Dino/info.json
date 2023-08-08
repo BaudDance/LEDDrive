@@ -15,7 +15,7 @@
     ],
     "type": "project",
     "img": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAAACXBIWXMAABJ0AAASdAHeZh94AAAAs0lEQVRYhe2XUQ6AMAhDrfH+V8YvE7OMUZANE903oc9SnEJEZCs8e6X4D/AKgCOjCQCzRsv6YwcY8VFd6ggiG50KwLoxDSByygFStqB32DxMA7jnYQSjAgAwn0ILnWcbwhmIJN4N0BMBYIozNRRAC8E29YyACmHEbhai/D2gAqz6Ukt3wAs+BFjhgumAB2LadWw1FpGwW3QGWoGs8YRCeIlnQLgBsoPpBojeD2q //9/w8wAn1/RHO2X0V1cAAAAASUVORK5CYII=",
-    "url": "",
+    "url": "https://github.com/BaudDance/LEDDrive/tree/main/project/I2C_OLED_Dino",
     "download": "I2C_OLED_Dino.zip",
     "version": "1.0.0"
 }

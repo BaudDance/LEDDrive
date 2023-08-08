@@ -14,7 +14,7 @@
         "HAL"
     ],
     "type": "library",
-    "url": "",
+    "url": "https://github.com/BaudDance/LEDDrive/tree/main/library/stm32_hal_ch1116",
     "exhibits": [
         "oled.c",
         "oled.h",
