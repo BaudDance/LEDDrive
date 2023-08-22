@@ -2,6 +2,7 @@
   "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
   "cmake.configureOnOpen": true,
   "files.associations": {
-    "oled.h": "c"
+    "i2c.h": "c",
+    "aht20.h": "c"
   }
 }

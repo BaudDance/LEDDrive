@@ -1,0 +1,25 @@
+{
+    "id": "3",
+    "name": "波特律动·AHT20驱动(STM32+HAL)",
+    "desc": "AHT20(DHT20)温湿度传感器",
+    "author": [
+        "keysking",
+        "博哥在学习"
+    ],
+    "label": [
+        "AHT20",
+        "DHT20",
+        "波特律动",
+        "STM32",
+        "HAL"
+    ],
+    "type": "library",
+    "url": "https://github.com/BaudDance/LEDDrive/tree/main/library/stm32_hal_aht20",
+    "exhibits": [
+        "aht20.c",
+        "aht20.h"
+    ],
+    "download": "stm32_hal_aht20.zip",
+    "img": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAIAAABMXPacAAAACXBIWXMAAAsTAAALEwEAmpwYAAAEnElEQVR4nO2dQXbdIAxFSU/nzSTra5aW9TWTLKEDp/+42OYL8aQnsO4oyfnfxnpIAhnIy5/fv0rC4we7AXcnBSCTApBJAcikAGRSADIpAJkUgEwKQCYFIJMCkEkByKQAZH6yG1BKKW8fX4+fP99fae34H59WjQqwtTKO1fbE1LUCE4LePr72T5vI0XvA0eKRvSEseg+4MjTLGyZ1waEQ9Pn+2pBh5Mo6ZoyEgFHQpsF0T74hbPbVx8bjLWwY+vn+ejrq6BVG+PllMg1yIvaISP7WmdT/isVEbK6+2WjtHBMxCm1znHpD2EmZqwCSIdPpZ+aNME/JYhyZ+QQIFUDGGSpF+NiiK/7smxQ27u9RCrA927zFH/jsRG0ETQiqWuNZAFgvRcNywNRWIKIRwLkOuk2wJT4+YzBU5oBGAc4uOQMvq7iUUUofmoidyiCc3Cs+s14CKJAcsI8PpkHg1NbC6BQWZDkadSnFLebVwLsWJI9XxSa8uM0fhUxZDVVwtYQAcrURRb1rQVVb5VYI1W2BID0A6926HiocaMWRExyCJM9WZQLhV9o3FTVOcCl/8DlgX6FTx1l4+j3avVcJo4mYXy1o3+h2JgCmOCHEBUUmSVhRtxl5/tPeLZRtb3qKBpgQBGn6lgzU3T9acBfCfCV5NJm/9YGOqAMgwJXVJA8TodtyNeC/lL/SwFMbogajAgiDRoSe3oWbBnwPuHpU51BQdRG3HjMkQKP7C0sC7Y85D8993mpUeFRDn4522niWbvxDJWyPmLD7S944NkrH0+WSpwwtzAJ+pSpUtBODtQyecQ8Tghrdv2HN43erP3Jl8EGZhLv25qnf5TYGtabW17VKh94DHp30WOY8huyrHWTyu6jbGZzRENQbQHTdZ5+fiZHH4tYveXQxF/5M+OakAGRSADIpAJkUgEwKQCYFIBNice4U+0mNwHvAwmUDC/BrQ8sqPdpngZ5tDpjX+m4gBfBf07kAsBAUwfq69MPtKCZrQ0fewtudyhATzNHFiZohAYCvXCDM6BzIo4uLdmliHlnWTbS+Py/4ZSmF/eZWx1MnMxodAJalnK7tXjhoYDFZFbFhtNF3sWWKQ8fXA/cY3RbwTnng1Zxpdya7sZlVKaL8a7TECboe1cIWRE+F/Q+Z6i8ZfITQNmonG/htqkkXTsU4YDX0lHnHY+BaUEwU1nd7q4qsBSUKNB6gsP5gNbQX4XQ6QlzCjIIiPIkQ4tFApwDOjg5ufXi1qvcubUY9ILj1j6AajBJPf3i3vOjfuy9ecnfU7YyuIAf/zzxD0dhDuEFfhJGro8lwDuuoAA5Dp1uWejsPOA5D279aE2J/AIpT24Ua9R9ZSoCK8SNdHIKYrQDwU232AE/aI66jWcQDdOd3K87RgbOIALpTiSqsX1qcYiuAYqoM7HddR1hjD6+Ws4gH7IEceOyWEtYRYMRk8GqVnHUEUNNYU+Mwh7jdTLhifEXTYLC6uwDVCtfed03jqeLuAmwo7Ig6uTHPjPuGNRlOAchkCCKTApBJAcikAGRSADIpAJkUgEwKQCYFIJMCkEkByKQAZFIAMikAmRSAzF9d8HePyeKvBQAAAABJRU5ErkJggg==",
+    "version": "1.0.0"
+}

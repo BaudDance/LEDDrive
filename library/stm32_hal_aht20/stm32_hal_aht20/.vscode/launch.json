@@ -1,0 +1,29 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch",
+      "type": "cppdbg",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${command:cmake.launchTargetPath}",
+      "MIMode": "gdb",
+      "miDebuggerPath": "${command:vscode-embedded.st.gdb}",
+      "miDebuggerServerAddress": "localhost:3333",
+      "debugServerPath": "${command:vscode-embedded.st.gdbserver}",
+      "debugServerArgs": "--stm32cubeprogrammer-path ${command:vscode-embedded.st.cubeprogrammer} --swd --port-number 3333",
+      "serverStarted": "Waiting for connection on port .*\\.\\.\\.",
+      "stopAtConnect": true,
+      "postRemoteConnectCommands": [
+        {
+          "text": "load build/debug/build/stm32_hal_aht20.elf"
+        }
+      ],
+      "logging": {
+        "engineLogging": true
+      },
+      "preLaunchTask": "Build",
+      "svdPath": "${command:vscode-embedded.st.svd}/STM32F103.svd"
+    }
+  ]
+}
