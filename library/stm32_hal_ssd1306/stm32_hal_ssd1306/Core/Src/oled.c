@@ -46,7 +46,7 @@ uint8_t OLED_GRAM[OLED_PAGE][OLED_COLUMN];
  * @return None
  * @note 此函数是移植本驱动时的重要函数 将本驱动库移植到其他平台时应根据实际情况修改此函数
  */
-void Send(uint8_t *data, uint8_t len)
+void OLED_Send(uint8_t *data, uint8_t len)
 {
   HAL_I2C_Master_Transmit(&hi2c2, OLED_ADDRESS, data, len, HAL_MAX_DELAY);
 }
@@ -58,7 +58,7 @@ void OLED_SendCmd(uint8_t cmd)
 {
   static uint8_t sendBuffer[2] = {0};
   sendBuffer[1] = cmd;
-  Send(sendBuffer, 2);
+  OLED_Send(sendBuffer, 2);
 }
 
 // ========================== OLED驱动函数 ==========================
@@ -180,7 +180,7 @@ void OLED_ShowFrame()
     OLED_SendCmd(0x00);     // 设置列地址低4位
     OLED_SendCmd(0x10);     // 设置列地址高4位
     memcpy(sendBuffer + 1, OLED_GRAM[i], OLED_COLUMN);
-    Send(sendBuffer, OLED_COLUMN + 1);
+    OLED_Send(sendBuffer, OLED_COLUMN + 1);
   }
 }
 
