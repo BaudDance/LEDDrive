@@ -1,0 +1,101 @@
+C51 COMPILER V9.60.7.0   MAIN                                                              12/11/2023 21:20:51 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: D:\ProgramFiles\Keil_v5\C51\BIN\C51.EXE main.c LARGE OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PR
+                    -INT(.\Listings\main.lst) TABS(2) OBJECT(.\Objects\main.obj)
+
+line level    source
+
+   1          /*波特律动OLED演示函数 8051 Version
+   2           *适用于STC15,STC8等具有硬件I2C, flash >= 16kB, sram >= 2kB的型号
+   3           *测试MCU：STC8H8K64U-TSSOP20
+   4           *Note:请勿随意改变函数、变量定义/声明的位置
+   5           *Note:结构体变量定义/声明时需要struct关键字（可能是编译器的BUG）
+   6           *Note:code关键字用于确保常量位于flash中，请勿删除
+   7           *Note:编译选项Memory Model选择Large:variables in XDATA
+   8           *MAIN_Fosc   24000000L
+   9           *其他下载选项保持默认
+  10           *2023/12/11 FQL
+  11          */
+  12          #include "main.h"
+  13          #include "stdio.h"
+  14          #include "oled.h"
+  15          #include "STC8G_H_I2C.h"
+  16          
+  17          void main()
+  18          {
+  19   1        uint8_t i;
+  20   1        I2C_InitTypeDef I2C0;
+  21   1        I2C0.I2C_Speed = 13;//总线速度=Fosc/2/(Speed*2+4),      0~63, 400kHz
+  22   1        I2C0.I2C_Enable = ENABLE;
+  23   1        I2C0.I2C_Mode = I2C_Mode_Master;
+  24   1        I2C0.I2C_MS_WDTA = DISABLE;//主机不使能自动发送
+  25   1      
+  26   1        EAXSFR();
+  27   1        EAXRAM();
+  28   1      
+  29   1        GPIO_Init_OD();
+  30   1        I2C_Init(&I2C0);
+  31   1        Delay_ms(100);
+  32   1        OLED_Init(); 
+  33   1      
+  34   1        while (1)
+  35   1        {
+  36   2          for (i = 0; i < 256; i++)
+  37   2          {
+  38   3            OLED_NewFrame();
+  39   3            OLED_DrawImage((128 - (bilibiliImg.w)) / 2, 0, &bilibiliImg, OLED_COLOR_NORMAL);
+  40   3            OLED_PrintString(128 - i, 64 - 16, "波特律动hello", &font16x16, OLED_COLOR_NORMAL);
+  41   3            OLED_ShowFrame();
+  42   3          }
+  43   2        }
+  44   1      }
+  45          
+  46          void Delay_ms(uint8_t time_ms)  //@24.000MHz
+  47          {
+  48   1        uint8_t k;
+  49   1        for(k = 0;k < time_ms;k++)
+  50   1        {
+  51   2          uint8_t data i, j;
+  52   2      
+  53   2          _nop_();
+  54   2          i = 32;
+C51 COMPILER V9.60.7.0   MAIN                                                              12/11/2023 21:20:51 PAGE 2   
+
+  55   2          j = 40;
+  56   2          do
+  57   2          {
+  58   3            while (--j);
+  59   3          } while (--i);
+  60   2        }
+  61   1        
+  62   1      }
+  63          
+  64          void GPIO_Init_OD()
+  65          {
+  66   1      //  P3M0 |= 0x0c;
+  67   1      //  P3M1 |= 0x0c;//P3.2与P3.3设为开漏输出
+  68   1        P1M0 |= 0x30;
+  69   1        P1M1 |= 0x30;//P1.5与P1.4设为开漏输出
+  70   1      
+  71   1        
+  72   1        P_SW2 &= ~0x30;//I2C_S = 00, P1.5(P3.2) = SCL, P1.4(P3.3) = SDA
+  73   1      }
+  74          
+  75          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    176    ----
+   CONSTANT SIZE    =     18    ----
+   XDATA SIZE       =   ----       7
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       2
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

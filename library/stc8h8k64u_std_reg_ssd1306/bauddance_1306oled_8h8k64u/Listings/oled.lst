@@ -1,0 +1,911 @@
+C51 COMPILER V9.60.7.0   OLED                                                              12/11/2023 21:20:52 PAGE 1   
+
+
+C51 COMPILER V9.60.7.0, COMPILATION OF MODULE OLED
+OBJECT MODULE PLACED IN .\Objects\oled.obj
+COMPILER INVOKED BY: D:\ProgramFiles\Keil_v5\C51\BIN\C51.EXE oled.c LARGE OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PR
+                    -INT(.\Listings\oled.lst) TABS(2) OBJECT(.\Objects\oled.obj)
+
+line level    source
+
+   1          /**
+   2           * @file oled.c
+   3           * @brief 波特律动OLED驱动(SSD1306)
+   4           * @anchor 波特律动(keysking 博哥在学习)
+   5           * @version 1.0
+   6           * @date 2023-08-19
+   7           * @license MIT License
+   8           *
+   9           * @attention
+  10           * 本驱动库针对波特律动·keysking的STM32教程学习套件进行开发
+  11           * 在其他平台或驱动芯片上使用可能需要进行移植
+  12           *
+  13           * @note
+  14           * 使用流程:
+  15           * 1. STM32初始化IIC完成后调用OLED_Init()初始化OLED. 注意STM32启动比OLED上电快, 可等�
+             -��20ms再初始化OLED
+  16           * 2. 调用OLED_NewFrame()开始绘制新的一帧
+  17           * 3. 调用OLED_DrawXXX()系列函数绘制图形到显存 调用OLED_Printxxx()系列函数绘制文本�
+             -��显存
+  18           * 4. 调用OLED_ShowFrame()将显存内容显示到OLED
+  19           *
+  20           * @note
+  21           * 为保证中文显示正常 请将编译器的字符集设置为UTF-8
+  22           *
+  23           */
+  24          /*8051 Version
+  25           *STC15,STC8 With HW IIC
+  26           *Note:请勿随意改变函数、变量定义/声明的位置
+  27           *Note:结构体变量定义/声明时需要struct关键字（可能是编译器的BUG）
+  28           *Note:code关键字用于确保常量位于flash中，请勿删除
+  29           *Note:编译选项Memory Model选择Large:variables in XDATA
+  30           *2023/12/11 FQL
+  31          */
+  32          #include "oled.h"
+  33          #include <math.h>
+  34          #include <stdlib.h>
+  35          #include "STC8G_H_I2C.h"
+  36          
+  37          // OLED器件地址
+  38          #define OLED_ADDRESS 0x78
+  39          
+  40          // OLED参数
+  41          #define OLED_PAGE 8            // OLED页数
+  42          #define OLED_ROW 8 * OLED_PAGE // OLED行数
+  43          #define OLED_COLUMN 128        // OLED列数
+  44          
+  45          // 显存
+  46          uint8_t xdata OLED_GRAM[OLED_PAGE][OLED_COLUMN];
+  47          
+  48          // ========================== 底层通信函数 ==========================
+  49          
+  50          /**
+  51           * @brief 向OLED发送数据的函数
+  52           * @param data_8 要发送的数据
+C51 COMPILER V9.60.7.0   OLED                                                              12/11/2023 21:20:52 PAGE 2   
+
+  53           * @param len 要发送的数据长度
+  54           * @return None
+  55           * @note 此函数是移植本驱动时的重要函数 将本驱动库移植到其他平台时应根据实
+             -际情况修改此函数
+  56           */
+  57          void OLED_Send(uint8_t *data_8, uint8_t len)
+  58          {
+  59   1        I2C_WriteNbyte_WithoutmemaddrWrite(OLED_ADDRESS, data_8, len);
+  60   1      //  HAL_I2C_Master_Transmit(&hi2c2, OLED_ADDRESS, data_8, len,HAL_MAX_DELAY);
+  61   1      //  HAL_I2C_Master_Transmit_IT(&hi2c2, OLED_ADDRESS, data_8, len);
+  62   1      //  HAL_I2C_Master_Transmit_DMA(&hi2c2, OLED_ADDRESS, data_8, len);
+  63   1      }
+  64          
+  65          /**
+  66           * @brief 向OLED发送指令
+  67           */
+  68          void OLED_SendCmd(uint8_t cmd)
+  69          {
+  70   1        static uint8_t sendBuffer[2] = {0};
+  71   1        sendBuffer[1] = cmd;
+  72   1        OLED_Send(sendBuffer, 2);
+  73   1      }
+  74          
+  75          // ========================== OLED驱动函数 ==========================
+  76          
+  77          /**
+  78           * @brief 初始化OLED (SSD1306)
+  79           * @note 此函数是移植本驱动时的重要函数 将本驱动库移植到其他驱动芯片时应根
+             -据实际情况修改此函数
+  80           */
+  81          void OLED_Init()
+  82          {
+  83   1        OLED_SendCmd(0xAE); /*关闭显示 display off*/
+  84   1      
+  85   1        OLED_SendCmd(0x20);
+  86   1        OLED_SendCmd(0x10);
+  87   1      
+  88   1        OLED_SendCmd(0xB0);
+  89   1      
+  90   1        OLED_SendCmd(0xC8);
+  91   1      
+  92   1        OLED_SendCmd(0x00);
+  93   1        OLED_SendCmd(0x10);
+  94   1      
+  95   1        OLED_SendCmd(0x40);
+  96   1      
+  97   1        OLED_SendCmd(0x81);
+  98   1      
+  99   1        OLED_SendCmd(0xDF);
+ 100   1        OLED_SendCmd(0xA1);
+ 101   1      
+ 102   1        OLED_SendCmd(0xA6);
+ 103   1        OLED_SendCmd(0xA8);
+ 104   1      
+ 105   1        OLED_SendCmd(0x3F);
+ 106   1      
+ 107   1        OLED_SendCmd(0xA4);
+ 108   1      
+ 109   1        OLED_SendCmd(0xD3);
+ 110   1        OLED_SendCmd(0x00);
+ 111   1      
+ 112   1        OLED_SendCmd(0xD5);
+C51 COMPILER V9.60.7.0   OLED                                                              12/11/2023 21:20:52 PAGE 3   
+
+ 113   1        OLED_SendCmd(0xF0);
+ 114   1      
+ 115   1        OLED_SendCmd(0xD9);
+ 116   1        OLED_SendCmd(0x22);
+ 117   1      
+ 118   1        OLED_SendCmd(0xDA);
+ 119   1        OLED_SendCmd(0x12);
+ 120   1      
+ 121   1        OLED_SendCmd(0xDB);
+ 122   1        OLED_SendCmd(0x20);
+ 123   1      
+ 124   1        OLED_SendCmd(0x8D);
+ 125   1        OLED_SendCmd(0x14);
+ 126   1      //  OLED_SendCmd(0xAE); //关闭显示
+ 127   1      //  
+ 128   1      //  OLED_SendCmd(0xD5); //设置显示时钟分频比/振荡器频率
+ 129   1      //  OLED_SendCmd(0x80);
+ 130   1      //  
+ 131   1      //  OLED_SendCmd(0xA8); //设置多路复用率
+ 132   1      //  OLED_SendCmd(0x3F);
+ 133   1      //  
+ 134   1      //  OLED_SendCmd(0xD3); //设置显示偏移
+ 135   1      //  OLED_SendCmd(0x00);
+ 136   1      //  
+ 137   1      //  OLED_SendCmd(0x40); //设置显示开始行
+ 138   1      //  
+ 139   1      //  OLED_SendCmd(0xA1); //设置左右方向，0xA1正常 0xA0左右反置
+ 140   1      //  
+ 141   1      //  OLED_SendCmd(0xC8); //设置上下方向，0xC8正常 0xC0上下反置
+ 142   1      
+ 143   1      //  OLED_SendCmd(0xDA); //设置COM引脚硬件配置
+ 144   1      //  OLED_SendCmd(0x12);
+ 145   1      //  
+ 146   1      //  OLED_SendCmd(0x81); //设置对比度控制
+ 147   1      //  OLED_SendCmd(0xCF);
+ 148   1      
+ 149   1      //  OLED_SendCmd(0xD9); //设置预充电周期
+ 150   1      //  OLED_SendCmd(0xF1);
+ 151   1      
+ 152   1      //  OLED_SendCmd(0xDB); //设置VCOMH取消选择级别
+ 153   1      //  OLED_SendCmd(0x30);
+ 154   1      
+ 155   1      //  OLED_SendCmd(0xA4); //设置整个显示打开/关闭
+ 156   1      
+ 157   1      //  OLED_SendCmd(0xA6); //设置正常/倒转显示
+ 158   1      
+ 159   1      //  OLED_SendCmd(0x8D); //设置充电泵
+ 160   1      //  OLED_SendCmd(0x14);
+ 161   1      
+ 162   1      
+ 163   1        OLED_NewFrame();
+ 164   1        OLED_ShowFrame();
+ 165   1      
+ 166   1        OLED_SendCmd(0xAF); /*开启显示 display ON*/
+ 167   1        
+ 168   1      //  OLED_NewFrame();
+ 169   1      //  OLED_ShowFrame();
+ 170   1      }
+ 171          
+ 172          /**
+ 173           * @brief 开启OLED显示
+ 174           */
+C51 COMPILER V9.60.7.0   OLED                                                              12/11/2023 21:20:52 PAGE 4   
+
+ 175          void OLED_DisPlay_On()
+ 176          {
+ 177   1        OLED_SendCmd(0x8D); // 电荷泵使能
+ 178   1        OLED_SendCmd(0x14); // 开启电荷泵
+ 179   1        OLED_SendCmd(0xAF); // 点亮屏幕
+ 180   1      }
+ 181          
+ 182          /**
+ 183           * @brief 关闭OLED显示
+ 184           */
+ 185          void OLED_DisPlay_Off()
+ 186          {
+ 187   1        OLED_SendCmd(0x8D); // 电荷泵使能
+ 188   1        OLED_SendCmd(0x10); // 关闭电荷泵
+ 189   1        OLED_SendCmd(0xAE); // 关闭屏幕
+ 190   1      }
+ 191          
+ 192          /**
+ 193           * @brief 设置颜色模式 黑底白字或白底黑字
+ 194           * @param ColorMode 颜色模式COLOR_NORMAL/COLOR_REVERSED
+ 195           * @note 此函数直接设置屏幕的颜色模式
+ 196           */
+ 197          void OLED_SetColorMode(OLED_ColorMode mode)
+ 198          {
+ 199   1        if (mode == OLED_COLOR_NORMAL)
+ 200   1        {
+ 201   2          OLED_SendCmd(0xA6); // 正常显示
+ 202   2        }
+ 203   1        if (mode == OLED_COLOR_REVERSED)
+ 204   1        {
+ 205   2          OLED_SendCmd(0xA7); // 反色显示
+ 206   2        }
+ 207   1      }
+ 208          
+ 209          // ========================== 显存操作函数 ==========================
+ 210          
+ 211          /**
+ 212           * @brief 清空显存 绘制新的一帧
+ 213           */
+ 214          void OLED_NewFrame()
+ 215          {
+ 216   1        memset(OLED_GRAM, 0, sizeof(OLED_GRAM));
+ 217   1      }
+ 218          
+ 219          /**
+ 220           * @brief 将当前显存显示到屏幕上
+ 221           * @note 此函数是移植本驱动时的重要函数 将本驱动库移植到其他驱动芯片时应根
+             -据实际情况修改此函数
+ 222           */
+ 223          void OLED_ShowFrame()
+ 224          {
+ 225   1        static xdata uint8_t sendBuffer[OLED_COLUMN + 1];
+ 226   1        uint8_t i;
+ 227   1        sendBuffer[0] = 0x40;
+ 228   1        for (i = 0; i < OLED_PAGE; i++)
+ 229   1        {
+ 230   2          OLED_SendCmd(0xB0 + i); // 设置页地址
+ 231   2          OLED_SendCmd(0x00);     // 设置列地址低4位
+ 232   2          OLED_SendCmd(0x10);     // 设置列地址高4位
+ 233   2          memcpy(sendBuffer + 1, OLED_GRAM[i], OLED_COLUMN);
+ 234   2          OLED_Send(sendBuffer, OLED_COLUMN + 1);
+ 235   2        }
+C51 COMPILER V9.60.7.0   OLED                                                              12/11/2023 21:20:52 PAGE 5   
+
+ 236   1      }
+ 237          
+ 238          /**
+ 239           * @brief 设置一个像素点
+ 240           * @param x 横坐标
+ 241           * @param y 纵坐标
+ 242           * @param color 颜色
+ 243           */
+ 244          void OLED_SetPixel(uint8_t x, uint8_t y, OLED_ColorMode color)
+ 245          {
+ 246   1        if (x >= OLED_COLUMN || y >= OLED_ROW)
+ 247   1          return;
+ 248   1        if (!color)
+ 249   1        {
+ 250   2          OLED_GRAM[y / 8][x] |= 1 << (y % 8);
+ 251   2        }
+ 252   1        else
+ 253   1        {
+ 254   2          OLED_GRAM[y / 8][x] &= ~(1 << (y % 8));
+ 255   2        }
+ 256   1      }
+ 257          
+ 258          /**
+ 259           * @brief 设置显存中一字节数据的某几位
+ 260           * @param page 页地址
+ 261           * @param column 列地址
+ 262           * @param data_8 数据
+ 263           * @param start 起始位
+ 264           * @param end 结束位
+ 265           * @param color 颜色
+ 266           * @note 此函数将显存中的某一字节的第start位到第end位设置为与data相同
+ 267           * @note start和end的范围为0-7, start必须小于等于end
+ 268           * @note 此函数与OLED_SetByte_Fine的区别在于此函数只能设置显存中的某一真实字节
+ 269           */
+ 270          void OLED_SetByte_Fine(uint8_t page, uint8_t column, uint8_t data_8, uint8_t start, uint8_t end, OLED_Colo
+             -rMode color)
+ 271          {
+ 272   1        static uint8_t temp;
+ 273   1        if (page >= OLED_PAGE || column >= OLED_COLUMN)
+ 274   1          return;
+ 275   1        if (color)
+ 276   1          data_8 = ~data_8;
+ 277   1      
+ 278   1        temp = data_8 | (0xff << (end + 1)) | (0xff >> (8 - start));
+ 279   1        OLED_GRAM[page][column] &= temp;
+ 280   1        temp = data_8 & ~(0xff << (end + 1)) & ~(0xff >> (8 - start));
+ 281   1        OLED_GRAM[page][column] |= temp;
+ 282   1        // 使用OLED_SetPixel实现
+ 283   1        // for (uint8_t i = start; i <= end; i++) {
+ 284   1        //   OLED_SetPixel(column, page * 8 + i, !((data_8 >> i) & 0x01));
+ 285   1        // }
+ 286   1      }
+ 287          
+ 288          /**
+ 289           * @brief 设置显存中的一字节数据
+ 290           * @param page 页地址
+ 291           * @param column 列地址
+ 292           * @param data_8 数据
+ 293           * @param color 颜色
+ 294           * @note 此函数将显存中的某一字节设置为data_8的值
+ 295           */
+ 296          void OLED_SetByte(uint8_t page, uint8_t column, uint8_t data_8, OLED_ColorMode color)
+C51 COMPILER V9.60.7.0   OLED                                                              12/11/2023 21:20:52 PAGE 6   
+
+ 297          {
+ 298   1        if (page >= OLED_PAGE || column >= OLED_COLUMN)
+ 299   1          return;
+ 300   1        if (color)
+ 301   1          data_8 = ~data_8;
+ 302   1        OLED_GRAM[page][column] = data_8;
+ 303   1      }
+ 304          
+ 305          /**
+ 306           * @brief 设置显存中的一字节数据的某几位
+ 307           * @param x 横坐标
+ 308           * @param y 纵坐标
+ 309           * @param data_8 数据
+ 310           * @param len 位数
+ 311           * @param color 颜色
+ 312           * @note 此函数将显存中从(x,y)开始向下数len位设置为与data_8相同
+ 313           * @note len的范围为1-8
+ 314           * @note 此函数与OLED_SetByte_Fine的区别在于此函数的横坐标和纵坐标是以像素为单�
+             -�的, 可能出现跨两个真实字节的情况(跨页)
+ 315           */
+ 316          void OLED_SetBits_Fine(uint8_t x, uint8_t y, uint8_t data_8, uint8_t len, OLED_ColorMode color)
+ 317          {
+ 318   1        uint8_t page = y / 8;
+ 319   1        uint8_t bit_8 = y % 8;
+ 320   1        if (bit_8 + len > 8)
+ 321   1        {
+ 322   2          OLED_SetByte_Fine(page, x, data_8 << bit_8, bit_8, 7, color);
+ 323   2          OLED_SetByte_Fine(page + 1, x, data_8 >> (8 - bit_8), 0, len + bit_8 - 1 - 8, color);
+ 324   2        }
+ 325   1        else
+ 326   1        {
+ 327   2          OLED_SetByte_Fine(page, x, data_8 << bit_8, bit_8, bit_8 + len - 1, color);
+ 328   2        }
+ 329   1        // 使用OLED_SetPixel实现
+ 330   1        // for (uint8_t i = 0; i < len; i++) {
+ 331   1        //   OLED_SetPixel(x, y + i, !((data_8 >> i) & 0x01));
+ 332   1        // }
+ 333   1      }
+ 334          
+ 335          /**
+ 336           * @brief 设置显存中一字节长度的数据
+ 337           * @param x 横坐标
+ 338           * @param y 纵坐标
+ 339           * @param data_8 数据
+ 340           * @param color 颜色
+ 341           * @note 此函数将显存中从(x,y)开始向下数8位设置为与data_8相同
+ 342           * @note 此函数与OLED_SetByte的区别在于此函数的横坐标和纵坐标是以像素为单位的,
+             - 可能出现跨两个真实字节的情况(跨页)
+ 343           */
+ 344          void OLED_SetBits(uint8_t x, uint8_t y, uint8_t data_8, OLED_ColorMode color)
+ 345          {
+ 346   1        uint8_t page = y / 8;
+ 347   1        uint8_t bit_8 = y % 8;
+ 348   1        OLED_SetByte_Fine(page, x, data_8 << bit_8, bit_8, 7, color);
+ 349   1        if (bit_8)
+ 350   1        {
+ 351   2          OLED_SetByte_Fine(page + 1, x, data_8 >> (8 - bit_8), 0, bit_8 - 1, color);
+ 352   2        }
+ 353   1      }
+ 354          
+ 355          /**
+ 356           * @brief 设置一块显存区域
+C51 COMPILER V9.60.7.0   OLED                                                              12/11/2023 21:20:52 PAGE 7   
+
+ 357           * @param x 起始横坐标
+ 358           * @param y 起始纵坐标
+ 359           * @param data_8 数据的起始地址
+ 360           * @param w 宽度
+ 361           * @param h 高度
+ 362           * @param color 颜色
+ 363           * @note 此函数将显存中从(x,y)开始的w*h个像素设置为data_8中的数据
+ 364           * @note data_8的数据应该采用列行式排列
+ 365           */
+ 366          void OLED_SetBlock(uint8_t x, uint8_t y, const uint8_t *data_8, uint8_t w, uint8_t h, OLED_ColorMode color
+             -)
+ 367          {
+ 368   1        uint8_t fullRow = h / 8; // 完整的行数
+ 369   1        uint8_t partBit = h % 8; // 不完整的字节中的有效位数
+ 370   1        uint8_t i,j;
+ 371   1        uint16_t fullNum;
+ 372   1        
+ 373   1        for (i = 0; i < w; i++)
+ 374   1        {
+ 375   2          for (j = 0; j < fullRow; j++)
+ 376   2          {
+ 377   3            OLED_SetBits(x + i, y + j * 8, data_8[i + j * w], color);
+ 378   3          }
+ 379   2        }
+ 380   1        if (partBit)
+ 381   1        {
+ 382   2          fullNum = w * fullRow; // 完整的字节数
+ 383   2          for (i = 0; i < w; i++)
+ 384   2          {
+ 385   3            OLED_SetBits_Fine(x + i, y + (fullRow * 8), data_8[fullNum + i], partBit, color);
+ 386   3          }
+ 387   2        }
+ 388   1        // 使用OLED_SetPixel实现
+ 389   1        // for (uint8_t i = 0; i < w; i++) {
+ 390   1        //   for (uint8_t j = 0; j < h; j++) {
+ 391   1        //     for (uint8_t k = 0; k < 8; k++) {
+ 392   1        //       if (j * 8 + k >= h) break; // 防止越界(不完整的字节
+ 393   1        //       OLED_SetPixel(x + i, y + j * 8 + k, !((data_8[i + j * w] >> k) & 0x01));
+ 394   1        //     }
+ 395   1        //   }
+ 396   1        // }
+ 397   1      }
+ 398          
+ 399          // ========================== 图形绘制函数 ==========================
+ 400          /**
+ 401           * @brief 绘制一条线段
+ 402           * @param x1 起始点横坐标
+ 403           * @param y1 起始点纵坐标
+ 404           * @param x2 终止点横坐标
+ 405           * @param y2 终止点纵坐标
+ 406           * @param color 颜色
+ 407           * @note 此函数使用Bresenham算法绘制线段
+ 408           */
+ 409          void OLED_DrawLine(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, OLED_ColorMode color)
+ 410          {
+ 411   1        static uint8_t temp = 0;
+ 412   1        uint8_t x_8,y_8;
+ 413   1        int16_t dx;
+ 414   1        int16_t dy;
+ 415   1        int16_t ux;
+ 416   1        int16_t uy;
+ 417   1        int16_t x, y, eps;
+C51 COMPILER V9.60.7.0   OLED                                                              12/11/2023 21:20:52 PAGE 8   
+
+ 418   1        
+ 419   1        if (x1 == x2)
+ 420   1        {
+ 421   2          if (y1 > y2)
+ 422   2          {
+ 423   3            temp = y1;
+ 424   3            y1 = y2;
+ 425   3            y2 = temp;
+ 426   3          }
+ 427   2          for (y_8 = y1; y_8 <= y2; y_8++)
+ 428   2          {
+ 429   3            OLED_SetPixel(x1, y_8, color);
+ 430   3          }
+ 431   2        }
+ 432   1        else if (y1 == y2)
+ 433   1        {
+ 434   2          if (x1 > x2)
+ 435   2          {
+ 436   3            temp = x1;
+ 437   3            x1 = x2;
+ 438   3            x2 = temp;
+ 439   3          }
+ 440   2          for (x_8 = x1; x_8 <= x2; x_8++)
+ 441   2          {
+ 442   3            OLED_SetPixel(x_8, y1, color);
+ 443   3          }
+ 444   2        }
+ 445   1        else
+ 446   1        {
+ 447   2          // Bresenham直线算法
+ 448   2          dx = x2 - x1;
+ 449   2          dy = y2 - y1;
+ 450   2          ux = ((dx > 0) << 1) - 1;
+ 451   2          uy = ((dy > 0) << 1) - 1;
+ 452   2          x = x1;
+ 453   2          y = y1;
+ 454   2          eps = 0;
+ 455   2          dx = abs(dx);
+ 456   2          dy = abs(dy);
+ 457   2          if (dx > dy)
+ 458   2          {
+ 459   3            for (x = x1; x != x2; x += ux)
+ 460   3            {
+ 461   4              OLED_SetPixel(x, y, color);
+ 462   4              eps += dy;
+ 463   4              if ((eps << 1) >= dx)
+ 464   4              {
+ 465   5                y += uy;
+ 466   5                eps -= dx;
+ 467   5              }
+ 468   4            }
+ 469   3          }
+ 470   2          else
+ 471   2          {
+ 472   3            for (y = y1; y != y2; y += uy)
+ 473   3            {
+ 474   4              OLED_SetPixel(x, y, color);
+ 475   4              eps += dx;
+ 476   4              if ((eps << 1) >= dy)
+ 477   4              {
+ 478   5                x += ux;
+ 479   5                eps -= dy;
+C51 COMPILER V9.60.7.0   OLED                                                              12/11/2023 21:20:52 PAGE 9   
+
+ 480   5              }
+ 481   4            }
+ 482   3          }
+ 483   2        }
+ 484   1      }
+ 485          
+ 486          /**
+ 487           * @brief 绘制一个矩形
+ 488           * @param x 起始点横坐标
+ 489           * @param y 起始点纵坐标
+ 490           * @param w 矩形宽度
+ 491           * @param h 矩形高度
+ 492           * @param color 颜色
+ 493           */
+ 494          void OLED_DrawRectangle(uint8_t x, uint8_t y, uint8_t w, uint8_t h, OLED_ColorMode color)
+ 495          {
+ 496   1        OLED_DrawLine(x, y, x + w, y, color);
+ 497   1        OLED_DrawLine(x, y + h, x + w, y + h, color);
+ 498   1        OLED_DrawLine(x, y, x, y + h, color);
+ 499   1        OLED_DrawLine(x + w, y, x + w, y + h, color);
+ 500   1      }
+ 501          
+ 502          /**
+ 503           * @brief 绘制一个填充矩形
+ 504           * @param x 起始点横坐标
+ 505           * @param y 起始点纵坐标
+ 506           * @param w 矩形宽度
+ 507           * @param h 矩形高度
+ 508           * @param color 颜色
+ 509           */
+ 510          void OLED_DrawFilledRectangle(uint8_t x, uint8_t y, uint8_t w, uint8_t h, OLED_ColorMode color)
+ 511          {
+ 512   1        uint8_t i;
+ 513   1        for (i = 0; i < h; i++)
+ 514   1        {
+ 515   2          OLED_DrawLine(x, y + i, x + w, y + i, color);
+ 516   2        }
+ 517   1      }
+ 518          
+ 519          /**
+ 520           * @brief 绘制一个三角形
+ 521           * @param x1 第一个点横坐标
+ 522           * @param y1 第一个点纵坐标
+ 523           * @param x2 第二个点横坐标
+ 524           * @param y2 第二个点纵坐标
+ 525           * @param x3 第三个点横坐标
+ 526           * @param y3 第三个点纵坐标
+ 527           * @param color 颜色
+ 528           */
+ 529          void OLED_DrawTriangle(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint8_t x3, uint8_t y3, OLED_ColorM
+             -ode color)
+ 530          {
+ 531   1        OLED_DrawLine(x1, y1, x2, y2, color);
+ 532   1        OLED_DrawLine(x2, y2, x3, y3, color);
+ 533   1        OLED_DrawLine(x3, y3, x1, y1, color);
+ 534   1      }
+ 535          
+ 536          /**
+ 537           * @brief 绘制一个填充三角形
+ 538           * @param x1 第一个点横坐标
+ 539           * @param y1 第一个点纵坐标
+ 540           * @param x2 第二个点横坐标
+C51 COMPILER V9.60.7.0   OLED                                                              12/11/2023 21:20:52 PAGE 10  
+
+ 541           * @param y2 第二个点纵坐标
+ 542           * @param x3 第三个点横坐标
+ 543           * @param y3 第三个点纵坐标
+ 544           * @param color 颜色
+ 545           */
+ 546          void OLED_DrawFilledTriangle(uint8_t x1, uint8_t y1, uint8_t x2, uint8_t y2, uint8_t x3, uint8_t y3, OLED_
+             -ColorMode color)
+ 547          {
+ 548   1        uint8_t a = 0, b = 0, y = 0, last = 0;
+ 549   1        if (y1 > y2)
+ 550   1        {
+ 551   2          a = y2;
+ 552   2          b = y1;
+ 553   2        }
+ 554   1        else
+ 555   1        {
+ 556   2          a = y1;
+ 557   2          b = y2;
+ 558   2        }
+ 559   1        y = a;
+ 560   1        for (; y <= b; y++)
+ 561   1        {
+ 562   2          if (y <= y3)
+ 563   2          {
+ 564   3            OLED_DrawLine(x1 + (y - y1) * (x2 - x1) / (y2 - y1), y, x1 + (y - y1) * (x3 - x1) / (y3 - y1), y, co
+             -lor);
+ 565   3          }
+ 566   2          else
+ 567   2          {
+ 568   3            last = y - 1;
+ 569   3            break;
+ 570   3          }
+ 571   2        }
+ 572   1        for (; y <= b; y++)
+ 573   1        {
+ 574   2          OLED_DrawLine(x2 + (y - y2) * (x3 - x2) / (y3 - y2), y, x1 + (y - last) * (x3 - x1) / (y3 - last), y, 
+             -color);
+ 575   2        }
+ 576   1      }
+ 577          
+ 578          /**
+ 579           * @brief 绘制一个圆
+ 580           * @param x 圆心横坐标
+ 581           * @param y 圆心纵坐标
+ 582           * @param r 圆半径
+ 583           * @param color 颜色
+ 584           * @note 此函数使用Bresenham算法绘制圆
+ 585           */
+ 586          void OLED_DrawCircle(uint8_t x, uint8_t y, uint8_t r, OLED_ColorMode color)
+ 587          {
+ 588   1        int16_t a = 0, b = r, di = 3 - (r << 1);
+ 589   1        while (a <= b)
+ 590   1        {
+ 591   2          OLED_SetPixel(x - b, y - a, color);
+ 592   2          OLED_SetPixel(x + b, y - a, color);
+ 593   2          OLED_SetPixel(x - a, y + b, color);
+ 594   2          OLED_SetPixel(x - b, y - a, color);
+ 595   2          OLED_SetPixel(x - a, y - b, color);
+ 596   2          OLED_SetPixel(x + b, y + a, color);
+ 597   2          OLED_SetPixel(x + a, y - b, color);
+ 598   2          OLED_SetPixel(x + a, y + b, color);
+ 599   2          OLED_SetPixel(x - b, y + a, color);
+C51 COMPILER V9.60.7.0   OLED                                                              12/11/2023 21:20:52 PAGE 11  
+
+ 600   2          a++;
+ 601   2          if (di < 0)
+ 602   2          {
+ 603   3            di += 4 * a + 6;
+ 604   3          }
+ 605   2          else
+ 606   2          {
+ 607   3            di += 10 + 4 * (a - b);
+ 608   3            b--;
+ 609   3          }
+ 610   2          OLED_SetPixel(x + a, y + b, color);
+ 611   2        }
+ 612   1      }
+ 613          
+ 614          /**
+ 615           * @brief 绘制一个填充圆
+ 616           * @param x 圆心横坐标
+ 617           * @param y 圆心纵坐标
+ 618           * @param r 圆半径
+ 619           * @param color 颜色
+ 620           * @note 此函数使用Bresenham算法绘制圆
+ 621           */
+ 622          void OLED_DrawFilledCircle(uint8_t x, uint8_t y, uint8_t r, OLED_ColorMode color)
+ 623          {
+ 624   1        int16_t a = 0, b = r, di = 3 - (r << 1);
+ 625   1        int16_t i;
+ 626   1        
+ 627   1        while (a <= b)
+ 628   1        {
+ 629   2          for (i = x - b; i <= x + b; i++)
+ 630   2          {
+ 631   3            OLED_SetPixel(i, y + a, color);
+ 632   3            OLED_SetPixel(i, y - a, color);
+ 633   3          }
+ 634   2          for (i = x - a; i <= x + a; i++)
+ 635   2          {
+ 636   3            OLED_SetPixel(i, y + b, color);
+ 637   3            OLED_SetPixel(i, y - b, color);
+ 638   3          }
+ 639   2          a++;
+ 640   2          if (di < 0)
+ 641   2          {
+ 642   3            di += 4 * a + 6;
+ 643   3          }
+ 644   2          else
+ 645   2          {
+ 646   3            di += 10 + 4 * (a - b);
+ 647   3            b--;
+ 648   3          }
+ 649   2        }
+ 650   1      }
+ 651          
+ 652          /**
+ 653           * @brief 绘制一个椭圆
+ 654           * @param x 椭圆中心横坐标
+ 655           * @param y 椭圆中心纵坐标
+ 656           * @param a 椭圆长轴
+ 657           * @param b 椭圆短轴
+ 658           */
+ 659          void OLED_DrawEllipse(uint8_t x, uint8_t y, uint8_t a, uint8_t b, OLED_ColorMode color)
+ 660          {
+ 661   1        int xpos = 0, ypos = b;
+C51 COMPILER V9.60.7.0   OLED                                                              12/11/2023 21:20:52 PAGE 12  
+
+ 662   1        int a2 = a * a, b2 = b * b;
+ 663   1        int d = b2 + a2 * (0.25 - b);
+ 664   1        while (a2 * ypos > b2 * xpos)
+ 665   1        {
+ 666   2          OLED_SetPixel(x + xpos, y + ypos, color);
+ 667   2          OLED_SetPixel(x - xpos, y + ypos, color);
+ 668   2          OLED_SetPixel(x + xpos, y - ypos, color);
+ 669   2          OLED_SetPixel(x - xpos, y - ypos, color);
+ 670   2          if (d < 0)
+ 671   2          {
+ 672   3            d = d + b2 * ((xpos << 1) + 3);
+ 673   3            xpos += 1;
+ 674   3          }
+ 675   2          else
+ 676   2          {
+ 677   3            d = d + b2 * ((xpos << 1) + 3) + a2 * (-(ypos << 1) + 2);
+ 678   3            xpos += 1, ypos -= 1;
+ 679   3          }
+ 680   2        }
+ 681   1        d = b2 * (xpos + 0.5) * (xpos + 0.5) + a2 * (ypos - 1) * (ypos - 1) - a2 * b2;
+ 682   1        while (ypos > 0)
+ 683   1        {
+ 684   2          OLED_SetPixel(x + xpos, y + ypos, color);
+ 685   2          OLED_SetPixel(x - xpos, y + ypos, color);
+ 686   2          OLED_SetPixel(x + xpos, y - ypos, color);
+ 687   2          OLED_SetPixel(x - xpos, y - ypos, color);
+ 688   2          if (d < 0)
+ 689   2          {
+ 690   3            d = d + b2 * ((xpos << 1) + 2) + a2 * (-(ypos << 1) + 3);
+ 691   3            xpos += 1, ypos -= 1;
+ 692   3          }
+ 693   2          else
+ 694   2          {
+ 695   3            d = d + a2 * (-(ypos << 1) + 3);
+ 696   3            ypos -= 1;
+ 697   3          }
+ 698   2        }
+ 699   1      }
+ 700          
+ 701          /**
+ 702           * @brief 绘制一张图片
+ 703           * @param x 起始点横坐标
+ 704           * @param y 起始点纵坐标
+ 705           * @param img 图片
+ 706           * @param color 颜色
+ 707           */
+ 708          void OLED_DrawImage(uint8_t x, uint8_t y, const struct Image *img, OLED_ColorMode color)
+ 709          {
+ 710   1        OLED_SetBlock(x, y, img->data_8, img->w, img->h, color);
+ 711   1      }
+ 712          
+ 713          // ================================ 文字绘制 ================================
+ 714          
+ 715          /**
+ 716           * @brief 绘制一个ASCII字符
+ 717           * @param x 起始点横坐标
+ 718           * @param y 起始点纵坐标
+ 719           * @param ch 字符
+ 720           * @param font 字体
+ 721           * @param color 颜色
+ 722           */
+ 723          void OLED_PrintASCIIChar(uint8_t x, uint8_t y, char ch, const struct ASCIIFont *font, OLED_ColorMode color
+C51 COMPILER V9.60.7.0   OLED                                                              12/11/2023 21:20:52 PAGE 13  
+
+             -)
+ 724          {
+ 725   1        OLED_SetBlock(x, y, font->chars + (ch - ' ') * (((font->h + 7) / 8) * font->w), font->w, font->h, color)
+             -;
+ 726   1      }
+ 727          
+ 728          /**
+ 729           * @brief 绘制一个ASCII字符串
+ 730           * @param x 起始点横坐标
+ 731           * @param y 起始点纵坐标
+ 732           * @param str 字符串
+ 733           * @param font 字体
+ 734           * @param color 颜色
+ 735           */
+ 736          void OLED_PrintASCIIString(uint8_t x, uint8_t y, char *str, const struct ASCIIFont *font, OLED_ColorMode c
+             -olor)
+ 737          {
+ 738   1        uint8_t x0 = x;
+ 739   1        while (*str)
+ 740   1        {
+ 741   2          OLED_PrintASCIIChar(x0, y, *str, font, color);
+ 742   2          x0 += font->w;
+ 743   2          str++;
+ 744   2        }
+ 745   1      }
+ 746          
+ 747          /**
+ 748           * @brief 获取UTF-8编码的字符长度
+ 749           */
+ 750          uint8_t _OLED_GetUTF8Len(char *string)
+ 751          {
+ 752   1        if ((string[0] & 0x80) == 0x00)
+ 753   1        {
+ 754   2          return 1;
+ 755   2        }
+ 756   1        else if ((string[0] & 0xE0) == 0xC0)
+ 757   1        {
+ 758   2          return 2;
+ 759   2        }
+ 760   1        else if ((string[0] & 0xF0) == 0xE0)
+ 761   1        {
+ 762   2          return 3;
+ 763   2        }
+ 764   1        else if ((string[0] & 0xF8) == 0xF0)
+ 765   1        {
+ 766   2          return 4;
+ 767   2        }
+ 768   1        return 0;
+ 769   1      }
+ 770          
+ 771          /**
+ 772           * @brief 绘制字符串
+ 773           * @param x 起始点横坐标
+ 774           * @param y 起始点纵坐标
+ 775           * @param str 字符串
+ 776           * @param font 字体
+ 777           * @param color 颜色
+ 778           *
+ 779           * @note 为保证字符串中的中文会被自动识别并绘制, 需:
+ 780           * 1. 编译器字符集设置为UTF-8
+ 781           * 2. 使用波特律动LED取模工具生成字模(https://led.baud-dance.com)
+ 782           */
+C51 COMPILER V9.60.7.0   OLED                                                              12/11/2023 21:20:52 PAGE 14  
+
+ 783          /**
+ 784           * @brief 绘制字符串
+ 785           * @param x 起始点横坐标
+ 786           * @param y 起始点纵坐标
+ 787           * @param str 字符串
+ 788           * @param font 字体
+ 789           * @param color 颜色
+ 790           *
+ 791           * @note 为保证字符串中的中文会被自动识别并绘制, 需:
+ 792           * 1. 编译器字符集设置为UTF-8
+ 793           * 2. 使用波特律动LED取模工具生成字模(https://led.baud-dance.com)
+ 794           */
+ 795          void OLED_PrintString(uint8_t x, uint8_t y, char *str, const struct Font *font, OLED_ColorMode color)
+ 796          {
+ 797   1        uint16_t i = 0; // 字符串索引
+ 798   1        uint8_t j;
+ 799   1        uint8_t oneLen = (((font->h + 7) / 8) * font->w) + 4; // 一个字模占多少字节
+ 800   1        uint8_t found;                                        // 是否找到字模
+ 801   1        uint8_t utf8Len;                                      // UTF-8编码长度
+ 802   1        uint8_t *head;                                        // 字模头指针
+ 803   1        while (str[i])
+ 804   1        {
+ 805   2          found = 0;
+ 806   2          utf8Len = _OLED_GetUTF8Len(str + i);
+ 807   2          if (utf8Len == 0)
+ 808   2            break; // 有问题的UTF-8编码
+ 809   2      
+ 810   2          // 寻找字符  TODO 优化查找算法, 二分查找或者hash
+ 811   2          for (j = 0; j < font->len; j++)
+ 812   2          {
+ 813   3            head = (uint8_t *)(font->chars) + (j * oneLen);
+ 814   3            if (memcmp(str + i, head, utf8Len) == 0)
+ 815   3            {
+ 816   4              OLED_SetBlock(x, y, head + 4, font->w, font->h, color);
+ 817   4              // 移动光标
+ 818   4              x += font->w;
+ 819   4              i += utf8Len;
+ 820   4              found = 1;
+ 821   4              break;
+ 822   4            }
+ 823   3          }
+ 824   2      
+ 825   2          // 若未找到字模,且为ASCII字符, 则缺省显示ASCII字符
+ 826   2          if (found == 0)
+ 827   2          {
+ 828   3            if (utf8Len == 1)
+ 829   3            {
+ 830   4              OLED_PrintASCIIChar(x, y, str[i], font->ascii, color);
+ 831   4              // 移动光标
+ 832   4              x += font->ascii->w;
+ 833   4              i += utf8Len;
+ 834   4            }
+ 835   3            else
+ 836   3            {
+ 837   4              OLED_PrintASCIIChar(x, y, ' ', font->ascii, color);
+ 838   4              x += font->ascii->w;
+ 839   4              i += utf8Len;
+ 840   4            }
+ 841   3          }
+ 842   2        }
+ 843   1      }
+
+C51 COMPILER V9.60.7.0   OLED                                                              12/11/2023 21:20:52 PAGE 15  
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   5397    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   1157     162
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
