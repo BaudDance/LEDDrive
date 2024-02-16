@@ -87,7 +87,7 @@ void AHT20_Measure() {
 /**
  * @brief 获取上次测量时的温度数据
  */
-float AHT20_Tempurature() {
+float AHT20_Temperature() {
   return Temperature;
 }
 
