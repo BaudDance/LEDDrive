@@ -392,7 +392,7 @@ void OLED_DrawRectangle(uint8_t x, uint8_t y, uint8_t w, uint8_t h, OLED_ColorMo
  */
 void OLED_DrawFilledRectangle(uint8_t x, uint8_t y, uint8_t w, uint8_t h, OLED_ColorMode color) {
   for (uint8_t i = 0; i < h; i++) {
-    OLED_DrawLine(x, y + i, x + w, y + i, color);
+    OLED_DrawLine(x, y+i, x+w-1, y+i, color);
   }
 }
 
