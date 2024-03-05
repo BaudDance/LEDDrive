@@ -65,7 +65,7 @@ void AHT20_Init() {
 
 /**
  * @brief AHT20测量函数
- * @note 测量完成后可以通过AHT20_Tempurature()与AHT20_Humidity()获取温度与湿度数据
+ * @note 测量完成后可以通过AHT20_Temperature()与AHT20_Humidity()获取温度与湿度数据
  */
 void AHT20_Measure() {
   uint8_t sendBuffer[3] = {0xAC, 0x33, 0x00};
@@ -75,12 +75,16 @@ void AHT20_Measure() {
   AHT20_Receive(readBuffer, 6);
 
   if ((readBuffer[0] & 0x80) == 0x00) {
-    uint32_t data = 0;
-    data = ((uint32_t)readBuffer[3] >> 4) + ((uint32_t)readBuffer[2] << 4) + ((uint32_t)readBuffer[1] << 12);
-    Humidity = data * 100.0f / (1 << 20);
-
-    data = (((uint32_t)readBuffer[3] & 0x0F) << 16) + (((uint32_t)readBuffer[4]) << 8) + (uint32_t)readBuffer[5];
-    Temperature = data * 200.0f / (1 << 20) - 50;
+    float humi, temp;
+    #ifdef __CMSIS_GCC_H //只快一点点，但是看起来可能更直观一些：__REV()是硬实现的大小端序转换，在cmsis_gcc.h中定义
+    humi = (__REV(*(uint32_t*)readBuffer) & 0x00fffff0) >> 4;
+    temp = __REV(*(uint32_t*)(readBuffer+2)) & 0x000fffff;
+    #else
+    humi = ((uint32_t)readBuffer[3] >> 4) + ((uint32_t)readBuffer[2] << 4) + ((uint32_t)readBuffer[1] << 12);
+    temp = (((uint32_t)readBuffer[3] & 0x0F) << 16) + (((uint32_t)readBuffer[4]) << 8) + (uint32_t)readBuffer[5];
+    #endif
+    Humidity = humi * 100 / (1 << 20);
+    Temperature = temp * 200 / (1 << 20) - 50;
   }
 }
 
