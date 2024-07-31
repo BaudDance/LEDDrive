@@ -1,0 +1,22 @@
+{
+  "folders": [
+    {
+      "path": "file:///c%3A/Users/PengHeng/workspace_ccstheia"
+    },
+    {
+      "path": ""
+    }
+  ],
+  "settings": {},
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Electric_racing_car",
+        "type": "ccs-debug",
+        "request": "launch",
+        "project": "Electric_racing_car"
+      }
+    ]
+  }
+}
