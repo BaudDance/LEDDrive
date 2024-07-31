@@ -1,7 +1,0 @@
-".\Objects\STARTUP.obj",
-".\Objects\main.obj",
-".\Objects\oled.obj",
-".\Objects\STC8G_H_I2C.obj",
-".\Objects\font.obj" 
-TO ".\Objects\bauddance_1306oled_8h8k64u" 
-PRINT(".\Listings\bauddance_1306oled_8h8k64u.m51") RAMSIZE(256) 
