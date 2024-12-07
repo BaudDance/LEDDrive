@@ -1,7 +1,9 @@
 {
-    "id": "3",
+    "id": "stm32_hal_ssd1306",
+    "sort": 5,
     "name": "波特律动·OLED驱动(STM32+HAL+SSD1306)",
     "desc": "波特律动出品的OLED驱动库",
+    "official": true,
     "author": [
         "keysking",
         "博哥在学习"

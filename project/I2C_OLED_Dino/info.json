@@ -1,7 +1,9 @@
 {
-    "id": "2",
+    "id": "I2C_OLED_Dino",
+    "sort": 1.1,
     "name": "小恐龙游戏",
     "desc": "基于波特律动OLED驱动库的小恐龙游戏",
+    "official": true,
     "author": [
         "博哥在学习"
     ],

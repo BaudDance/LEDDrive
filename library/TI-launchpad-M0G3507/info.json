@@ -1,5 +1,6 @@
 {
-    "id": "4",
+    "id": "m0-g3507_OLED",
+    "sort": 6,
     "name": "波特律动·OLED驱动(M0G3507+SSD1306/SSD1315)",
     "desc": "波特律动出品的OLED驱动库",
     "author": [

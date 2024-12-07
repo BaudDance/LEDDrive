@@ -1,7 +1,9 @@
 {
-    "id": "1",
+    "id": "stm32_hal_ch1116",
+    "sort": 1,
     "name": "波特律动·OLED驱动(STM32+HAL+CH1116)",
     "desc": "波特律动出品的OLED驱动库",
+    "official": true,
     "author": [
         "keysking",
         "博哥在学习"

@@ -1,7 +1,9 @@
 {
-    "id": "drv8833_1",
+    "id": "stm32_hal_drv8833",
+    "sort": 3,
     "name": "波特律动·电机驱动(STM32+HAL+DRV8833)",
     "desc": "波特律动出品的OLED驱动库",
+    "official": true,
     "author": [
         "keysking",
         "博哥在学习"

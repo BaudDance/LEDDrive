@@ -1,7 +1,9 @@
 {
     "id": "stm32_hal_aht20",
+    "sort": 4,
     "name": "波特律动·AHT20驱动(STM32+HAL)",
     "desc": "AHT20(DHT20)温湿度传感器",
+    "official": true,
     "author": [
         "keysking",
         "博哥在学习"
