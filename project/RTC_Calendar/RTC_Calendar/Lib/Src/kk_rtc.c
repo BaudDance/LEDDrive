@@ -1,17 +1,19 @@
 #include "kk_rtc.h"
+
+// RTC已经被初始化的值 记录在RTC_BKP_DR1中
 #define RTC_INIT_FLAG 0x2333
+
 /**
-  * @brief  Enters the RTC Initialization mode.
-  * @param  hrtc   pointer to a RTC_HandleTypeDef structure that contains
-  *                the configuration information for RTC.
-  * @retval HAL status
-  */
+ * @brief  进入RTC初始化模式
+ * @param  hrtc  指向包含RTC配置信息的RTC_HandleTypeDef结构体的指针
+ * @retval HAL status
+ */
 static HAL_StatusTypeDef RTC_EnterInitMode(RTC_HandleTypeDef *hrtc)
 {
   uint32_t tickstart = 0U;
 
   tickstart = HAL_GetTick();
-  /* Wait till RTC is in INIT state and if Time out is reached exit */
+  /* 等待RTC处于INIT状态，如果到达Time out 则退出 */
   while ((hrtc->Instance->CRL & RTC_CRL_RTOFF) == (uint32_t)RESET)
   {
     if ((HAL_GetTick() - tickstart) >  RTC_TIMEOUT_VALUE)
@@ -20,7 +22,7 @@ static HAL_StatusTypeDef RTC_EnterInitMode(RTC_HandleTypeDef *hrtc)
     }
   }
 
-  /* Disable the write protection for RTC registers */
+  /* 禁用RTC寄存器的写保护 */
   __HAL_RTC_WRITEPROTECTION_DISABLE(hrtc);
 
 
@@ -28,20 +30,19 @@ static HAL_StatusTypeDef RTC_EnterInitMode(RTC_HandleTypeDef *hrtc)
 }
 
 /**
-  * @brief  Exit the RTC Initialization mode.
-  * @param  hrtc   pointer to a RTC_HandleTypeDef structure that contains
-  *                the configuration information for RTC.
-  * @retval HAL status
-  */
+ * @brief  退出RTC初始化模式
+ * @param  hrtc   指向包含RTC配置信息的RTC_HandleTypeDef结构体的指针
+ * @retval HAL status
+ */
 static HAL_StatusTypeDef RTC_ExitInitMode(RTC_HandleTypeDef *hrtc)
 {
   uint32_t tickstart = 0U;
 
-  /* Disable the write protection for RTC registers */
+  /* 禁用RTC寄存器的写保护。 */
   __HAL_RTC_WRITEPROTECTION_ENABLE(hrtc);
 
   tickstart = HAL_GetTick();
-  /* Wait till RTC is in INIT state and if Time out is reached exit */
+  /* 等到RTC处于INIT状态，如果到达Time out 则退出 */
   while ((hrtc->Instance->CRL & RTC_CRL_RTOFF) == (uint32_t)RESET)
   {
     if ((HAL_GetTick() - tickstart) >  RTC_TIMEOUT_VALUE)
@@ -54,29 +55,28 @@ static HAL_StatusTypeDef RTC_ExitInitMode(RTC_HandleTypeDef *hrtc)
 }
 
 /**
-  * @brief  Write the time counter in RTC_CNT registers.
-  * @param  hrtc   pointer to a RTC_HandleTypeDef structure that contains
-  *                the configuration information for RTC.
-  * @param  TimeCounter: Counter to write in RTC_CNT registers
-  * @retval HAL status
-  */
+ * @brief  写入RTC_CNT寄存器中的时间计数器。
+ * @param  hrtc   指向包含RTC配置信息的RTC_HandleTypeDef结构体的指针。
+ * @param  TimeCounter: 写入RTC_CNT寄存器的计数器
+ * @retval HAL status
+ */
 static HAL_StatusTypeDef RTC_WriteTimeCounter(RTC_HandleTypeDef *hrtc, uint32_t TimeCounter)
 {
   HAL_StatusTypeDef status = HAL_OK;
 
-  /* Set Initialization mode */
+  /* 进入RTC初始化模式 */
   if (RTC_EnterInitMode(hrtc) != HAL_OK)
   {
     status = HAL_ERROR;
   }
   else
   {
-    /* Set RTC COUNTER MSB word */
+	/* 设置RTC计数器高位寄存器 */
     WRITE_REG(hrtc->Instance->CNTH, (TimeCounter >> 16U));
-    /* Set RTC COUNTER LSB word */
+    /* 设置RTC计数器低位寄存器 */
     WRITE_REG(hrtc->Instance->CNTL, (TimeCounter & RTC_CNTL_RTC_CNT));
 
-    /* Wait for synchro */
+    /* 退出RTC初始化模式 */
     if (RTC_ExitInitMode(hrtc) != HAL_OK)
     {
       status = HAL_ERROR;
@@ -88,11 +88,10 @@ static HAL_StatusTypeDef RTC_WriteTimeCounter(RTC_HandleTypeDef *hrtc, uint32_t 
 
 
 /**
-  * @brief  Read the time counter available in RTC_CNT registers.
-  * @param  hrtc   pointer to a RTC_HandleTypeDef structure that contains
-  *                the configuration information for RTC.
-  * @retval Time counter
-  */
+ * @brief  读取RTC_CNT寄存器中的时间计数器。
+ * @param  hrtc   指向包含RTC配置信息的RTC_HandleTypeDef结构体的指针。
+ * @retval 时间计数器
+ */
 static uint32_t RTC_ReadTimeCounter(RTC_HandleTypeDef *hrtc)
 {
   uint16_t high1 = 0U, high2 = 0U, low = 0U;
@@ -104,25 +103,32 @@ static uint32_t RTC_ReadTimeCounter(RTC_HandleTypeDef *hrtc)
 
   if (high1 != high2)
   {
-    /* In this case the counter roll over during reading of CNTL and CNTH registers,
-       read again CNTL register then return the counter value */
+	/* 当读取CNTL和CNTH寄存器期间计数器溢出时, 重新读取CNTL寄存器然后返回计数器值 */
     timecounter = (((uint32_t) high2 << 16U) | READ_REG(hrtc->Instance->CNTL & RTC_CNTL_RTC_CNT));
   }
   else
   {
-    /* No counter roll over during reading of CNTL and CNTH registers, counter
-       value is equal to first value of CNTL and CNTH */
+	/* 当读取CNTL和CNTH寄存器期间没有计数器溢出, 计数器值等于第一次读取的CNTL和CNTH值 */
     timecounter = (((uint32_t) high1 << 16U) | low);
   }
 
   return timecounter;
 }
 
+/**
+ * @brief 设置RTC时间
+ * @param time 时间
+ * @retval HAL status
+ */
 HAL_StatusTypeDef KK_RTC_SetTime(struct tm *time){
 	uint32_t unixTime = mktime(time);
 	return RTC_WriteTimeCounter(&hrtc, unixTime);
 }
 
+/**
+ * @brief 获取RTC时间
+ * @retval 时间
+ */
 struct tm *KK_RTC_GetTime() {
   time_t unixTime = RTC_ReadTimeCounter(&hrtc);
   return gmtime(&unixTime);
