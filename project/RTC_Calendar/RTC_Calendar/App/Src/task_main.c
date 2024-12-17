@@ -166,17 +166,19 @@ void _ShowStateLine() {
 }
 
 void TaskMain_Loop() {
-  Knob_TaskLoop();
-  OLED_NewFrame();
-  if (clockState == CLOCK_STATE_NORMAL) {
-    // 普通模式
-    struct tm *time = KK_RTC_GetTime();
-    _ShowTime(time);
-  } else {
-    // 设置模式
-    _ShowTime(&settingTime);
-    // 画设置状态
-    _ShowStateLine();
+  while (1) {
+    Knob_TaskLoop();
+    OLED_NewFrame();
+    if (clockState == CLOCK_STATE_NORMAL) {
+      // 普通模式
+      struct tm *time = KK_RTC_GetTime();
+      _ShowTime(time);
+    } else {
+      // 设置模式
+      _ShowTime(&settingTime);
+      // 画设置状态
+      _ShowStateLine();
+    }
+    OLED_ShowFrame();
   }
-  OLED_ShowFrame();
 }
