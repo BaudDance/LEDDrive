@@ -10,6 +10,9 @@
 ### 1. 引入
 #### Platform
 找到本工程的lib文件夹，将其中的oled文件夹复制到你工程中的lib文件夹中，若使用CLion的Platform插件，还需要重新加载项目
+#### Arduino
+找到本工程的lib文件夹，将其中的oled文件夹复制到你工程ino所在文件夹中即可
+记得调用相关头文件！
 
 ### 2. 使用
 1. 在setup中初始化I2C,可以使用 Wire 库的 Wire.begin 和 Wire.setClock
