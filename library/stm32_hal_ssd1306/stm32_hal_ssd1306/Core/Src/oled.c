@@ -185,6 +185,47 @@ void OLED_ShowFrame()
 }
 
 /**
+ * @brief 只重绘指定矩形区域（脏矩形）
+ * @param x 左边框横坐标
+ * @param y 上边框纵坐标
+ * @param width 宽度 单位：像素
+ * @param height 长度 单位：像素
+ * @note 实验性功能，用起来也比较麻烦
+ */
+void OLEDEx_ShowRectangle(uint8_t x, uint8_t y, uint8_t width, uint8_t height) {
+  //边界检查
+  if (width == 0 || height == 0) return;
+  if (x >= OLED_COLUMN || y >= OLED_ROW) return;
+  if (x + width > OLED_COLUMN) width = OLED_COLUMN - x;
+  if (y + height > OLED_ROW) height = OLED_ROW - y;
+
+  uint8_t start_page = y / 8;
+  uint8_t final_page = (y + height - 1) / 8;
+  uint8_t low_column = 0x0F & x;
+  uint8_t high_column = (0xF0 & x) >> 4 | 0x10;
+  uint8_t sendBuffer[OLED_COLUMN + 1];
+  sendBuffer[0] = 0x40;
+  for (uint8_t i = start_page; i <= final_page; i++) {
+    OLED_SendCmd(0xB0 + i);
+    OLED_SendCmd(low_column);
+    OLED_SendCmd(high_column);
+    memcpy(sendBuffer + 1, OLED_GRAM[i] + x, width);
+    OLED_Send(sendBuffer, width + 1);
+  }
+}
+
+/**
+ * @brief 清除指定矩形区域
+* @param x 左边框横坐标
+ * @param y 上边框纵坐标
+ * @param width 宽度 单位：像素
+ * @param height 长度 单位：像素
+ */
+void OLEDEx_CleanRectangle(uint8_t x, uint8_t y, uint8_t width, uint8_t height) {
+  OLED_DrawFilledRectangle(x, y, width, height, OLED_COLOR_REVERSED);
+}
+
+/**
  * @brief 设置一个像素点
  * @param x 横坐标
  * @param y 纵坐标

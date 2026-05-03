@@ -32,4 +32,6 @@ void OLED_PrintASCIIChar(uint8_t x, uint8_t y, char ch, const ASCIIFont *font, O
 void OLED_PrintASCIIString(uint8_t x, uint8_t y, char *str, const ASCIIFont *font, OLED_ColorMode color);
 void OLED_PrintString(uint8_t x, uint8_t y, char *str, const Font *font, OLED_ColorMode color);
 
+void OLEDEx_ShowRectangle(uint8_t x,uint8_t y,uint8_t width,uint8_t height);
+void OLEDEx_CleanRectangle(uint8_t x,uint8_t y,uint8_t width,uint8_t height);
 #endif // __OLED_H__
